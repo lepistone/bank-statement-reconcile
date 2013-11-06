@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#   Copyright (c) 2013 Camptocamp SA (http://www.camptocamp.com)
-#   @author Nicolas Bessi
+#    Author: Romain Deheele. Copyright Camptocamp SA
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,30 +18,23 @@
 #
 ##############################################################################
 
-{'name': 'Satement voucher killer',
- 'version': '1.0.0',
- 'category': 'other',
- 'description': """
-Prevent voucher creation when importing lines into statement.
-#############################################################
-
-When importing invoice or payment into a bank statement or a payment order, normally a
-draft voucher is created on the line. This module will disable this voucher creation.
-When importing payment line, date used to populate statement
-line will be take from imported line in this order:
-
- * Date
- * Maturity date
- * Related statement date
+{'name': 'Advanced Reconcile Transaction Ref',
+ 'description':  """
+Advanced reconciliation method for the module account_easy_reconcile
+=================================================
+Reconcile rules with transaction_ref
 
 """,
+ 'version': '1.0',
  'author': 'Camptocamp',
+ 'category': 'Finance',
  'website': 'http://www.camptocamp.com',
- 'depends': ['account_voucher', 'account_payment'],
- 'init_xml': [],
- 'update_xml': [],
- 'demo_xml': [],
- 'test': [],
+ 'depends': ['account_advanced_reconcile'],
+ 'data': ['easy_reconcile_view.xml'],
+ 'demo': [],
+ 'test': [], # To be ported or migrate to unit tests or scenarios
+ 'auto_install': False,
  'installable': True,
- 'active': False,
- }
+ 'images': []
+}
+# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
