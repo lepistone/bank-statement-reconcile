@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    Author: Romain Deheele. Copyright Camptocamp SA
+#    Author: Guewen Baconnier
+#    Copyright 2014 Camptocamp SA
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -17,24 +18,20 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from openerp.osv import orm, fields
 
-{'name': 'Advanced Reconcile Transaction Ref',
- 'description':  """
-Advanced reconciliation method for the module account_advanced_reconcile
-========================================================================
-Reconcile rules with transaction_ref
 
-""",
- 'version': '1.0',
- 'author': 'Camptocamp',
- 'category': 'Finance',
- 'website': 'http://www.camptocamp.com',
- 'depends': ['account_advanced_reconcile'],
- 'data': ['easy_reconcile_view.xml'],
- 'demo': [],
- 'test': [], # To be ported or migrate to unit tests or scenarios
- 'auto_install': False,
- 'installable': True,
- 'images': []
-}
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
+class account_move_line(orm.Model):
+    _inherit = 'account.move.line'
+
+    _columns = {
+        'transaction_ref': fields.char('Transaction Ref.',
+                                       select=True),
+    }
+
+    def copy_data(self, cr, uid, id, default=None, context=None):
+        if default is None:
+            default = {}
+        default['transaction_ref'] = False
+        return super(account_move_line, self).\
+            copy_data(cr, uid, id, default=default, context=context)

@@ -29,8 +29,20 @@ class AccountInvoice(Model):
     _columns = {
         'transaction_id': fields.char(
             'Transaction id',
-            size=128,
-            required=False,
             select=1,
-            help="Transction id from the financial institute"),
+            help="Transaction id from the financial institute"),
     }
+
+    def copy_data(self, cr, uid, id, default=None, context=None):
+        if default is None:
+            default = {}
+        default['transaction_id'] = False
+        return super(AccountInvoice, self).\
+            copy_data(cr, uid, id, default=default, context=context)
+
+    def finalize_invoice_move_lines(self, cr, uid, invoice_browse, move_lines):
+        if invoice_browse.transaction_id:
+            for line in move_lines:
+                # tuple (0, 0, {values})
+                line[2]['transaction_ref'] = invoice_browse.transaction_id
+        return move_lines
