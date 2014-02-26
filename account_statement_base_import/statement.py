@@ -85,12 +85,16 @@ class AccountStatementProfil(Model):
                           context=context)
         return True
 
-    def prepare_statetement_lines_vals(
+    #Deprecated remove on V8
+    def prepare_statetement_lines_vals(self, *args, **kwargs):
+        return self.prepare_statement_lines_vals(*args, **kwargs)
+
+    def prepare_statement_lines_vals(
             self, cr, uid, parser_vals, account_payable, account_receivable,
             statement_id, context):
         """
         Hook to build the values of a line from the parser returned values. At
-        least it fullfill the statement_id and account_id. Overide it to add your
+        least it fullfill the statement_id and account_id. Override it to add your
         own completion if needed.
 
         :param dict of vals from parser for account.bank.statement.line (called by
@@ -126,14 +130,14 @@ class AccountStatementProfil(Model):
         values['type'] = 'general'
         return values
 
-
-    def _prepare_statement_vals(self, cr, uid, prof, parser, context=None):
-        return {
-            'profile_id': prof.id,
-            'name': parser.get_statement_name(),
-            'balance_start': parser.get_start_balance(),
-            'balance_end_real': parser.get_end_balance(),
-        }
+    def prepare_statement_vals(self, cr, uid, profile_id, result_row_list, parser, context):
+        """
+        Hook to build the values of the statement from the parser and
+        the profile.
+        """
+        vals = {'profile_id': profile_id}
+        vals.update(parser.get_st_vals())
+        return vals
 
     def statement_import(self, cr, uid, ids, profile_id, file_stream, ftype="csv", context=None):
         """
@@ -168,8 +172,11 @@ class AccountStatementProfil(Model):
                                      _("Column %s you try to import is not "
                                        "present in the bank statement line!") % col)
 
-        st_vals = self._prepare_statement_vals(cr, uid, prof, parser, context=context) 
-        statement_id = statement_obj.create(cr, uid, st_vals, context=context)
+        statement_vals = self.prepare_statement_vals(cr, uid, prof.id, result_row_list, parser, context)
+        statement_id = statement_obj.create(cr, uid,
+                                            statement_vals,
+                                            context=context)
+
         if prof.receivable_account_id:
             account_receivable = account_payable = prof.receivable_account_id.id
         else:
@@ -180,7 +187,7 @@ class AccountStatementProfil(Model):
             statement_store = []
             for line in result_row_list:
                 parser_vals = parser.get_st_line_vals(line)
-                values = self.prepare_statetement_lines_vals(
+                values = self.prepare_statement_lines_vals(
                     cr, uid, parser_vals, account_payable, account_receivable, statement_id,
                     context)
                 statement_store.append(values)
@@ -215,7 +222,6 @@ class AccountStatementProfil(Model):
                                          context)
 
         except Exception:
-            statement_obj.unlink(cr, uid, [statement_id], context=context)
             error_type, error_value, trbk = sys.exc_info()
             st = "Error: %s\nDescription: %s\nTraceback:" % (error_type.__name__, error_value)
             st += ''.join(traceback.format_tb(trbk, 30))
