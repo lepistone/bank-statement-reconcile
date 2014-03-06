@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+##############################################################################
 #
-#
-#    Author: Laurent Mignon
-#    Copyright 2013 'ACSONE SA/NV'
+#    Author: Nicolas Bessi, Joel Grand-Guillaume
+#    Copyright 2011-2013 Camptocamp SA
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -17,32 +17,27 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#
+##############################################################################
 
-{'name': "Bank statement completion from bank account number",
- 'version': '1.0.1',
- 'author': 'ACSONE SA/NV',
- 'maintainer': 'ACSONE SA/NV',
- 'category': 'Finance',
+{'name': "Bank statement extension and profiles for Point of Sale",
+ 'version': '1.0.0',
+ 'author': 'Camptocamp',
+ 'maintainer': 'Camptocamp',
+ 'category': 'Point Of Sale',
  'complexity': 'normal',
- 'depends': [
-     'account_statement_base_completion',
- ],
+ 'depends': ['point_of_sale',
+             'account_statement_ext',
+             ],
  'description': """
-  Add a completion method based on the partner bank account number
-  provided by the bank/office.
-
-  Completion will look in the partner with that bank account number
-  to match the partner, then it will fill in the bank statement line
-  with it to ease the reconciliation.
-
+ Update the point of sale code to work with improved bank statements.
  """,
- 'website': 'http://www.acsone.eu',
- 'data': [
-     "data.xml",
- ],
+ 'website': 'http://www.camptocamp.com',
+ 'data': [],
  'demo': [],
+ 'test': [],
  'installable': True,
- 'auto_install': False,
+ 'images': [],
+ 'auto_install': True,
  'license': 'AGPL-3',
+ 'active': False,
  }
