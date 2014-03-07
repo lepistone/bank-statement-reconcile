@@ -58,11 +58,12 @@ class account_bank_statement(orm.Model):
     def _prepare_move(self, cr, uid, st_line, st_line_number, context=None):
         res = super(account_bank_statement, self).\
                 _prepare_move(cr, uid, st_line, st_line_number, context=context)
-        res.update({
-            'ref': st_line.statement_id.name,
-            'name': st_line.statement_id.name,
-            'date': st_line.statement_id.date,
-            })
+        if st_line.statement_id.profile_id.one_move:
+            res.update({
+                'ref': st_line.statement_id.name,
+                'name': '/',
+                'date': st_line.statement_id.date,
+                })
         return res
 
 
@@ -123,19 +124,13 @@ class account_bank_statement(orm.Model):
             company_currency_id, context=context)
         return account_move_line_obj.create(cr, uid, bank_move_vals, context=context)
 
-    def _valid_move(self, cr, uid, move_id, context=None):
-        move_obj = self.pool.get('account.move')
-        move = move_obj.browse(cr, uid, move_id, context=context)
-        move_obj.post(cr, uid, [move_id], context=context)
-        return True
-
 
     def _prepare_transfer_move_line_vals(self, cr, uid, st, name, amount, move_id, context=None):
         """
             Prepare the dict of values to create the transfer move lines.
         """
         account_id = st.profile_id.journal_id.default_debit_account_id.id
-        partner_id = st.profile_id.partner_id and profile.partner_id.id or False
+        partner_id = st.profile_id.partner_id and st.profile_id.partner_id.id or False
         if amount < 0.0:
             debit = 0.0
             credit = -amount
@@ -201,7 +196,6 @@ class account_bank_statement(orm.Model):
                 move_id = context['move_id']
                 move = move_obj.browse(cr, uid, move_id, context=context)
                 transfe_line_ids = self.create_move_transfer_lines(cr, uid, move, st, context=context)
-                self._valid_move(cr, uid, move_id, context=context)
                 lines_ids = [x.id for x in st.line_ids]
                 st_line_obj.write(cr, uid, lines_ids,
                         {'move_ids': [(4, move_id, False)]},
@@ -210,6 +204,9 @@ class account_bank_statement(orm.Model):
 
     def button_cancel(self, cr, uid, ids, context=None):
         done = []
+        if context is None:
+            context={}
+        context['from_parent_object'] = True
         for st in self.browse(cr, uid, ids, context=context):
             if st.profile_id.one_move and st.line_ids:
                 for move in st.line_ids[0].move_ids:
@@ -221,5 +218,4 @@ class account_bank_statement(orm.Model):
                 super(account_bank_statement, self).button_cancel(cr, uid, ids, 
                                                                  context=context)
         return True
-
 
