@@ -205,7 +205,7 @@ class account_bank_statement(orm.Model):
     def button_cancel(self, cr, uid, ids, context=None):
         done = []
         if context is None:
-            context={}
+            context = {}
         context['from_parent_object'] = True
         for st in self.browse(cr, uid, ids, context=context):
             if st.profile_id.one_move and st.line_ids:
