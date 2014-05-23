@@ -95,29 +95,21 @@ class AccountStatementProfil(Model):
         return self.prepare_statement_lines_vals(*args, **kwargs)
 
     def prepare_statement_lines_vals(
-            self, cr, uid, parser_vals, account_payable, account_receivable,
+            self, cr, uid, parser_vals,
             statement_id, context):
         """
         Hook to build the values of a line from the parser returned values. At
-        least it fullfill the statement_id and account_id. Override it to add your
+        least it fullfill the statement_id. Overide it to add your
         own completion if needed.
 
         :param dict of vals from parser for account.bank.statement.line (called by
                 parser.get_st_line_vals)
-        :param int/long account_payable: ID of the receivable account to use
-        :param int/long account_receivable: ID of the payable account to use
         :param int/long statement_id: ID of the concerned account.bank.statement
         :return: dict of vals that will be passed to create method of statement line.
         """
-        statement_obj = self.pool.get('account.bank.statement')
+        statement_line_obj = self.pool['account.bank.statement.line']
         values = parser_vals
         values['statement_id'] = statement_id
-        values['account_id'] = statement_obj.get_account_for_counterpart(cr,
-                                                                         uid,
-                                                                         parser_vals['amount'],
-                                                                         account_receivable,
-                                                                         account_payable)
-
         date = values.get('date')
         period_memoizer = context.get('period_memoizer')
         if not period_memoizer:
@@ -132,7 +124,7 @@ class AccountStatementProfil(Model):
                                                            context=context)
             values['period_id'] = periods[0]
             period_memoizer[date] = periods[0]
-        values['type'] = 'general'
+        values = statement_line_obj._add_missing_default_values(cr, uid, values, context)
         return values
 
     def prepare_statement_vals(self, cr, uid, profile_id, result_row_list, parser, context):
@@ -144,13 +136,39 @@ class AccountStatementProfil(Model):
         vals.update(parser.get_st_vals())
         return vals
 
-    def statement_import(self, cr, uid, ids, profile_id, file_stream, ftype="csv", context=None):
+    def multi_statement_import(self, cr, uid, ids, profile_id, file_stream,
+                               ftype="csv", context=None):
+        """
+        Create multiple bank statements from values given by the parser for the
+         givenprofile.
+
+        :param int/long profile_id: ID of the profile used to import the file
+        :param filebuffer file_stream: binary of the providen file
+        :param char: ftype represent the file exstension (csv by default)
+        :return: list: list of ids of the created account.bank.statemênt
+        """
+        prof_obj = self.pool['account.statement.profile']
+        if not profile_id:
+            raise osv.except_osv(_("No Profile!"),
+             _("You must provide a valid profile to import a bank statement!"))
+        prof = prof_obj.browse(cr, uid, profile_id, context=context)
+
+        parser = new_bank_statement_parser(prof.import_type, ftype=ftype)
+        res = []
+        for result_row_list in parser.parse(file_stream):
+            statement_id = self._statement_import(cr, uid, ids, prof, parser,
+                                    file_stream, ftype=ftype, context=context)
+            res.append(statement_id)
+        return res
+
+    def _statement_import(self, cr, uid, ids, prof, parser, file_stream, ftype="csv", context=None):
         """
         Create a bank statement with the given profile and parser. It will fullfill the bank statement
         with the values of the file providen, but will not complete data (like finding the partner, or
         the right account). This will be done in a second step with the completion rules.
 
-        :param int/long profile_id: ID of the profile used to import the file
+        :param prof : The profile used to import the file
+        :param parser: the parser
         :param filebuffer file_stream: binary of the providen file
         :param char: ftype represent the file exstension (csv by default)
         :return: ID of the created account.bank.statemênt
@@ -158,14 +176,8 @@ class AccountStatementProfil(Model):
         statement_obj = self.pool.get('account.bank.statement')
         statement_line_obj = self.pool.get('account.bank.statement.line')
         attachment_obj = self.pool.get('ir.attachment')
-        prof_obj = self.pool.get("account.statement.profile")
-        if not profile_id:
-            raise osv.except_osv(_("No Profile!"),
-                                 _("You must provide a valid profile to import a bank statement!"))
-        prof = prof_obj.browse(cr, uid, profile_id, context=context)
 
-        parser = new_bank_statement_parser(prof.import_type, ftype=ftype)
-        result_row_list = parser.parse(file_stream)
+        result_row_list = parser.result_row_list
         # Check all key are present in account.bank.statement.line!!
         if not result_row_list:
             raise osv.except_osv(_("Nothing to import"),
@@ -182,18 +194,13 @@ class AccountStatementProfil(Model):
                                             statement_vals,
                                             context=context)
 
-        if prof.receivable_account_id:
-            account_receivable = account_payable = prof.receivable_account_id.id
-        else:
-            account_receivable, account_payable = statement_obj.get_default_pay_receiv_accounts(
-                                                       cr, uid, context)
         try:
             # Record every line in the bank statement
             statement_store = []
             for line in result_row_list:
                 parser_vals = parser.get_st_line_vals(line)
                 values = self.prepare_statement_lines_vals(
-                    cr, uid, parser_vals, account_payable, account_receivable, statement_id,
+                    cr, uid, parser_vals, statement_id,
                     context)
                 statement_store.append(values)
             # Hack to bypass ORM poor perfomance. Sob...
