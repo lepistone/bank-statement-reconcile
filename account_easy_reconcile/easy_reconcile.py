@@ -394,7 +394,7 @@ class account_easy_reconcile(orm.Model):
             self._no_history(cr, uid, rec, context=context)
         return rec.last_history.open_partial()
 
-  def run_scheduler(self, cr, uid, run_all=None, context=None):
+    def run_scheduler(self, cr, uid, run_all=None, context=None):
         """ Launch the reconcile with the oldest run
         This function is mostly here to be used with cron task
 
