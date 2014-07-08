@@ -263,7 +263,7 @@ class account_easy_reconcile(orm.Model):
                 _('Error'),
                 _('There is no history of reconciled '
                   'items on the task: %s.') % rec.name)
-     
+
     def _open_move_line_list(sefl, cr, uid, move_line_ids, name, context=None):
         return {
             'name': name,
@@ -394,9 +394,26 @@ class account_easy_reconcile(orm.Model):
             self._no_history(cr, uid, rec, context=context)
         return rec.last_history.open_partial()
 
-    def run_scheduler(self, cr, uid, context=None):
-        # Retrieve all easy reconcile ids
+  def run_scheduler(self, cr, uid, run_all=None, context=None):
+        """ Launch the reconcile with the oldest run
+        This function is mostly here to be used with cron task
+
+        :param run_all: if set it will ingore lookup and launch
+                    all reconciliation
+        :returns: True in case of success or raises an exception
+
+        """
+        def _get_date(reconcile):
+            return datetime.strptime(reconcile.last_history.date,
+                                     DEFAULT_SERVER_DATETIME_FORMAT)
+
         ids = self.search(cr, uid, [], context=context)
-        # launch run_reconcile action for every item
-        self.run_reconcile(cr, uid, ids, context=context)
+        assert ids, "No easy reconcile available"
+        if run_all:
+            self.run_reconcile(cr, uid, ids, context=context)
+            return True
+        reconciles = self.browse(cr, uid, ids, context=context)
+        reconciles.sort(key=_get_date)
+        older = reconciles[0]
+        self.run_reconcile(cr, uid, [older.id], context=context)
         return True
