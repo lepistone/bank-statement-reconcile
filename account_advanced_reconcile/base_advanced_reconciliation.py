@@ -263,7 +263,11 @@ class easy_reconcile_advanced(orm.AbstractModel):
         partial_reconciled_ids = []
         reconcile_groups = []
 
+        # XXX
+        print("XXX gotta {} lines to reconcile".format(len(credit_lines)))
+
         for credit_line in credit_lines:
+            print ".",  # XXX
             if self._skip_line(cr, uid, rec, credit_line, context=context):
                 continue
 
@@ -284,7 +288,14 @@ class easy_reconcile_advanced(orm.AbstractModel):
 
         lines_by_id = dict([(l['id'], l) for l in credit_lines + debit_lines])
 
+        # XXX
+        print("XXX gotta {} groups to reconcile".format(len(reconcile_groups)))
+
         for group_count, reconcile_group_ids in enumerate(reconcile_groups):
+
+            # XXX
+            print("XXX reconciling group {}".format(group_count))
+
             group_lines = [lines_by_id[lid] for lid in reconcile_group_ids]
             reconciled, full = self._reconcile_lines(
                 cr, uid, rec, group_lines, allow_partial=True, context=context)
@@ -298,5 +309,8 @@ class easy_reconcile_advanced(orm.AbstractModel):
                 and (group_count + 1) % context['commit_every'] == 0
             ):
                 cr.commit()
+
+                # XXX
+                print("XXX and I commit after {} groups".format(group_count))
 
         return reconciled_ids, partial_reconciled_ids
